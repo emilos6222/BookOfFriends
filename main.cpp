@@ -1,10 +1,19 @@
 #include <iostream>
-#include <windows.h>
+#include <string>
+#include <vector>
 #include <fstream>
 #include <cstdlib>
-#include <vector>
+#include <windows.h>
+#include <cstdio>
 
 using namespace std;
+
+struct userData
+{
+    int userID;
+    string userLogin;
+    string userPassword;
+};
 
 struct Friend
 {
@@ -16,63 +25,69 @@ struct Friend
     string adress;
 };
 
-void saveData(fstream &friendsBook, vector<Friend> friendsList, int numberofFriends)
+int chooseLoggingMenu(void)
 {
-    friendsBook << friendsList[numberofFriends].id<<"|";
-    friendsBook << friendsList[numberofFriends].name<<"|";
-    friendsBook << friendsList[numberofFriends].lastName<<"|";
-    friendsBook << friendsList[numberofFriends].phoneNum<<"|";
-    friendsBook << friendsList[numberofFriends].email<<"|";
-    friendsBook << friendsList[numberofFriends].adress<<"|"<<endl;
+    int choice;
+    system("cls");
+
+    cout << "1. Registration" << endl;
+    cout << "2. Logging in" << endl;
+    cout << "3. Exit" << endl << endl;
+    cout << "Your choice: ";
+    cin >> choice;
+    return choice;
 }
 
-int addNewFriend(vector<Friend> &friendsList, int numberofFriends, fstream &friendsBook)
+void insertUserData(string &login, string &password)
 {
-    string temporaryName;
-    string temporaryLastName;
+
+    cout << "Insert login: ";
+    cin >> login;
+    cout << "Insert password: ";
+    cin >> password;
+}
+
+void showMainMenu(void)
+{
+    system("cls");
+    cout << "1. Insert new friend."<<endl;
+    cout << "2. Search a friend."<<endl;
+    cout << "3. Show all friends."<<endl;
+    cout << "4. Delete a friend."<<endl;
+    cout << "5. Edit a friend."<<endl;
+    cout << "----------------------"<< endl;
+    cout << "6. Change password."<<endl;
+    cout << "7. Logout."<<endl;
+    cout << "----------------------"<<endl;
+    cout << endl << "Choose an option: ";
+}
+
+void changePassword(vector<userData> &userList, fstream &bookOfUsers, int userID)
+{
+    string newPassword;
+    fstream tempBookOfUser;
 
     system("cls");
-    cout << "Insert friend's data."<<endl;
-    cout << "NAME: ";
-    cin >> temporaryName;
-    cout << "LAST NAME: ";
-    cin >> temporaryLastName;
+    cout << "Insert new password: ";
+    cin >> newPassword;
 
-    for(int i = 0; i < numberofFriends; i++)
+    tempBookOfUser.open("TemporaryUser.txt", ios::out |ios::app |ios::in);
+
+    for(vector<userData>::iterator i = userList.begin(); i < userList.end(); i++)
     {
-        if(friendsList[i].name == temporaryName)
-        {
-            if(friendsList[i].lastName == temporaryLastName)
-            {
-                cout << "This friend already exist in your address book.";
-                Sleep(2000);
-                return numberofFriends;
-            }
-        }
+        if(userID == i->userID)
+            i->userPassword = newPassword;
+
+        tempBookOfUser<< i->userID <<"|"<< i->userLogin <<"|"<< i->userPassword <<"|"<<endl;
     }
 
-    cout << "ADRESS: ";
-    getchar();
-    getline(cin, friendsList[numberofFriends].adress);
-    cout << "E-MAIL: ";
-    cin >> friendsList[numberofFriends].email;
-    cout << "PHONE NUMBER: ";
-    cin >> friendsList[numberofFriends].phoneNum;
+    tempBookOfUser.close();
+    remove("Users.txt");
+    rename( "TemporaryUser.txt", "Users.txt" );
 
-    friendsList[numberofFriends].name = temporaryName;
-    friendsList[numberofFriends].lastName = temporaryLastName;
-
-    if(numberofFriends > 0)
-        friendsList[numberofFriends].id = friendsList[numberofFriends-1].id + 1;
-    else
-        friendsList[numberofFriends].id = numberofFriends + 1;
-
-    cout << "You added new friend.";
-
-    saveData(friendsBook, friendsList, numberofFriends);
-
+    system("cls");
+    cout << "You have changed your password.";
     Sleep(2000);
-    return friendsList[numberofFriends].id;
 }
 
 bool isAnyFriendInBook(int numberofFriends)
@@ -89,6 +104,7 @@ bool isAnyFriendInBook(int numberofFriends)
 
 void showFriendsData(vector<Friend> friendsList, int numberofFriends)
 {
+    cout << friendsList[numberofFriends].id<<endl;
     cout << friendsList[numberofFriends].name<<" "<<friendsList[numberofFriends].lastName<<endl;
     cout << friendsList[numberofFriends].adress<<endl;
     cout << friendsList[numberofFriends].phoneNum<<endl;
@@ -179,29 +195,162 @@ void searchFriends(vector<Friend> friendsList, int numberofFriends)
 
 }
 
-void changeDataInBookFile(vector<Friend> friendsList, int numberofFriends, fstream &friendsBook)
+int writeFriendsData(vector<Friend> &friendsList, int userID, fstream &friendsBook, int &lastFriendID)
 {
-    friendsBook.close();
-    remove("ksiazka4.txt");
+    int numberOfFriendsData = 0;
+    int numberofFriends = 0;
+    string lineFromTextFile;
+    string tempPartOfDatas;
+    string userIdToCompare;
+    string dataToCheckLastID;
 
-    friendsBook.open("ksiazka4.txt",ios::out |ios::app |ios::in);
+    while(getline(friendsBook, lineFromTextFile))
+    {
+        int charNumberOfSeparator = 0;
 
-    for(int i = 0; i < numberofFriends; i++)
-        saveData(friendsBook, friendsList, i);
+        charNumberOfSeparator = lineFromTextFile.find("|");
+        dataToCheckLastID.assign(lineFromTextFile, 0, charNumberOfSeparator);
+        lastFriendID = stoi(dataToCheckLastID);
+        tempPartOfDatas.assign(lineFromTextFile, charNumberOfSeparator+1, lineFromTextFile.size()-1);
+        charNumberOfSeparator = lineFromTextFile.find("|");
+        tempPartOfDatas.assign(tempPartOfDatas, 0, charNumberOfSeparator);
+        userIdToCompare = tempPartOfDatas;
+
+        if(stoi(userIdToCompare) == userID)
+        {
+            charNumberOfSeparator = 0;
+
+            charNumberOfSeparator = lineFromTextFile.find("|");
+            tempPartOfDatas.assign(lineFromTextFile, 0, charNumberOfSeparator);
+            friendsList[numberOfFriendsData].id = stoi(tempPartOfDatas);
+            numberofFriends++;
+
+            lineFromTextFile.assign(lineFromTextFile, charNumberOfSeparator+1, lineFromTextFile.size()-1);
+            charNumberOfSeparator = lineFromTextFile.find("|");
+
+            lineFromTextFile.assign(lineFromTextFile, charNumberOfSeparator+1, lineFromTextFile.size()-1);
+            charNumberOfSeparator = lineFromTextFile.find("|");
+            tempPartOfDatas.assign(lineFromTextFile, 0, charNumberOfSeparator);
+            friendsList[numberOfFriendsData].name = tempPartOfDatas;
+
+            lineFromTextFile.assign(lineFromTextFile, charNumberOfSeparator+1, lineFromTextFile.size()-1);
+            charNumberOfSeparator = lineFromTextFile.find("|");
+            tempPartOfDatas.assign(lineFromTextFile, 0, charNumberOfSeparator);
+            friendsList[numberOfFriendsData].lastName = tempPartOfDatas;
+
+            lineFromTextFile.assign(lineFromTextFile, charNumberOfSeparator+1, lineFromTextFile.size()-1);
+            charNumberOfSeparator = lineFromTextFile.find("|");
+            tempPartOfDatas.assign(lineFromTextFile, 0, charNumberOfSeparator);
+            friendsList[numberOfFriendsData].phoneNum = tempPartOfDatas;
+
+            lineFromTextFile.assign(lineFromTextFile, charNumberOfSeparator+1, lineFromTextFile.size()-1);
+            charNumberOfSeparator = lineFromTextFile.find("|");
+            tempPartOfDatas.assign(lineFromTextFile, 0, charNumberOfSeparator);
+            friendsList[numberOfFriendsData].email = tempPartOfDatas;
+
+            lineFromTextFile.assign(lineFromTextFile, charNumberOfSeparator+1, lineFromTextFile.size()-1);
+            charNumberOfSeparator = lineFromTextFile.find("|");
+            tempPartOfDatas.assign(lineFromTextFile, 0, charNumberOfSeparator);
+            friendsList[numberOfFriendsData].adress = tempPartOfDatas;
+
+            numberOfFriendsData++;
+        }
+    }
+    return numberofFriends;
 }
 
-int deleteFriend(vector<Friend> &friendsList, int numberofFriends, fstream &friendsBook)
+void saveData(fstream &friendsBook, vector<Friend> friendsList, int *numOfFriendsAndLastIDAndUserID)
 {
-    int numberIDToEdit;
+    friendsBook << friendsList[numOfFriendsAndLastIDAndUserID[0]].id<<"|";
+    friendsBook << numOfFriendsAndLastIDAndUserID[2]<<"|";
+    friendsBook << friendsList[numOfFriendsAndLastIDAndUserID[0]].name<<"|";
+    friendsBook << friendsList[numOfFriendsAndLastIDAndUserID[0]].lastName<<"|";
+    friendsBook << friendsList[numOfFriendsAndLastIDAndUserID[0]].phoneNum<<"|";
+    friendsBook << friendsList[numOfFriendsAndLastIDAndUserID[0]].email<<"|";
+    friendsBook << friendsList[numOfFriendsAndLastIDAndUserID[0]].adress<<"|"<<endl;
+}
+
+void addNewFriend(vector<Friend> &friendsList, int *numOfFriendsAndLastIDAndUserID, fstream &friendsBook)
+{
+    string temporaryName;
+    string temporaryLastName;
+
+
+    system("cls");
+    cout << "Insert friend's data."<<endl;
+    cout << "NAME: ";
+    cin >> temporaryName;
+    cout << "LAST NAME: ";
+    cin >> temporaryLastName;
+    cout << "ADRESS: ";
+    getchar();
+    getline(cin, friendsList[numOfFriendsAndLastIDAndUserID[0]].adress);
+    cout << "E-MAIL: ";
+    cin >> friendsList[numOfFriendsAndLastIDAndUserID[0]].email;
+    cout << "PHONE NUMBER: ";
+    cin >> friendsList[numOfFriendsAndLastIDAndUserID[0]].phoneNum;
+
+
+    friendsList[numOfFriendsAndLastIDAndUserID[0]].name = temporaryName;
+    friendsList[numOfFriendsAndLastIDAndUserID[0]].lastName = temporaryLastName;
+
+        friendsList[numOfFriendsAndLastIDAndUserID[0]].id = ++numOfFriendsAndLastIDAndUserID[1];
+
+    cout << "You added new friend.";
+
+    saveData(friendsBook, friendsList, numOfFriendsAndLastIDAndUserID);
+
+    Sleep(2000);
+    numOfFriendsAndLastIDAndUserID[0]++;
+}
+
+int changeDataInBookFile(int numberIDToDelete, int *numOfFriendsAndLastIDAndUserID, fstream &friendsBook)
+{
+    string lineOfText;
+    string IdInFile;
+    int lastIdInFile = 0;
+    int separatorPosition = 0;
+
+    fstream tempTextFile;
+    friendsBook.close();
+    friendsBook.open("Friends.txt",ios::out | ios::app | ios::in);
+    tempTextFile.open("temporaryBook.txt",ios::out | ios::app | ios::in);
+
+    while(getline(friendsBook, lineOfText))
+    {
+        separatorPosition = lineOfText.find("|");
+        IdInFile.assign(lineOfText, 0, separatorPosition);
+
+        if(numberIDToDelete != stoi(IdInFile))
+        {
+            tempTextFile<<lineOfText<<endl;
+            lastIdInFile = stoi(IdInFile);
+        }
+    }
+
+    friendsBook.close();
+    tempTextFile.close();
+
+    remove("Friends.txt");
+    rename("temporaryBook.txt", "Friends.txt");
+
+    friendsBook.open("Friends.txt",ios::out |ios::app |ios::in);
+
+    return lastIdInFile;
+}
+
+void deleteFriend(vector<Friend> &friendsList, int *numOfFriendsAndLastIDAndUserID, fstream &friendsBook)
+{
+    int numberIDToDelete;
 
     system("cls");
     cout << "Insert friend's ID to delete him from the data base: ";
-    cin >> numberIDToEdit;
+    cin >> numberIDToDelete;
 
     system("cls");
-    for(int i = 0; i < numberofFriends; i++)
+    for(int i = 0; i < numOfFriendsAndLastIDAndUserID[0]; i++)
     {
-        if(friendsList[i].id == numberIDToEdit)
+        if(friendsList[i].id == numberIDToDelete)
         {
             string decisionToDeleteOrNot;
             cout <<"Are you sure you want delete friend ?"<<endl;
@@ -210,21 +359,20 @@ int deleteFriend(vector<Friend> &friendsList, int numberofFriends, fstream &frie
 
             if(decisionToDeleteOrNot == "t")
             {
+                numOfFriendsAndLastIDAndUserID[1] = changeDataInBookFile(numberIDToDelete, numOfFriendsAndLastIDAndUserID, friendsBook);
                 friendsList.erase(friendsList.begin()+i);
-                numberofFriends--;
-                changeDataInBookFile(friendsList, numberofFriends, friendsBook);
+                numOfFriendsAndLastIDAndUserID[0]--;
 
                 cout << "Friend has been deleted.";
                 Sleep(3000);
-                return numberofFriends;
+                return;
             }
-            return numberofFriends;
+            return;
         }
     }
+
     cout << "Friend with data you gave does not exist in your book.";
     Sleep(3000);
-
-    return numberofFriends;
 }
 
 void chooseDataToEdit(vector<Friend> &friendsList,int numberOfFriendInBook)
@@ -240,15 +388,14 @@ void chooseDataToEdit(vector<Friend> &friendsList,int numberOfFriendInBook)
     cout << "4 - change email"<<endl;
     cout << "5 - change adress"<<endl;
     cout << "6 - back to main menu"<<endl;
+    cout << endl << "Your choice: ";
 
     cin >> chooseKindOfData;
-
 
     system("cls");
     cout << "Insert data to change: ";
     getchar();
     getline(cin, changedData);
-
 
     switch(chooseKindOfData)
     {
@@ -278,7 +425,60 @@ void chooseDataToEdit(vector<Friend> &friendsList,int numberOfFriendInBook)
 
 }
 
-void editFriend(vector<Friend> &friendsList, int numberofFriends, fstream &friendsBook)
+void editOneDataInBookFile(vector<Friend> &friendsList, int *numOfFriendsAndLastIDAndUserID, fstream &friendsBook, int numberIDToEdit)
+{
+    string lineOfText;
+    string IdInFile;
+    int separatorPosition = 0;
+    int lineNumToEditInVector = 0;
+
+    fstream tempTextFile;
+    friendsBook.close();
+    friendsBook.open("Friends.txt",ios::out | ios::app | ios::in);
+    tempTextFile.open("temporaryBook.txt",ios::out | ios::app | ios::in);
+
+    while(getline(friendsBook, lineOfText))
+    {
+        separatorPosition = lineOfText.find("|");
+        IdInFile.assign(lineOfText, 0, separatorPosition);
+
+        if(numberIDToEdit != stoi(IdInFile))
+        {
+            tempTextFile<<lineOfText<<endl;
+        }
+        else
+        {
+            for(vector<Friend>::iterator i = friendsList.begin(); i < friendsList.end(); i++)
+            {
+                if(numberIDToEdit != (i -> id))
+                {
+                    lineNumToEditInVector++;
+                }
+                else
+                    break;
+            }
+
+            tempTextFile << friendsList[lineNumToEditInVector].id<<"|";
+            tempTextFile << numOfFriendsAndLastIDAndUserID[2]<<"|";
+            tempTextFile << friendsList[lineNumToEditInVector].name<<"|";
+            tempTextFile << friendsList[lineNumToEditInVector].lastName<<"|";
+            tempTextFile << friendsList[lineNumToEditInVector].phoneNum<<"|";
+            tempTextFile << friendsList[lineNumToEditInVector].email<<"|";
+            tempTextFile << friendsList[lineNumToEditInVector].adress<<"|"<<endl;
+        }
+    }
+
+    friendsBook.close();
+    tempTextFile.close();
+
+    remove("Friends.txt");
+    rename("temporaryBook.txt", "Friends.txt");
+
+    friendsBook.open("Friends.txt",ios::out |ios::app |ios::in);
+
+}
+
+void editFriend(vector<Friend> &friendsList, int *numOfFriendsAndLastIDAndUserID, fstream &friendsBook)
 {
     int numberIDToEdit;
 
@@ -286,12 +486,12 @@ void editFriend(vector<Friend> &friendsList, int numberofFriends, fstream &frien
     cout << "Insert friend's ID to edit his data: ";
     cin >> numberIDToEdit;
 
-    for(int numberOfFriendInBook = 0; numberOfFriendInBook < numberofFriends; numberOfFriendInBook++)
+    for(int numberOfFriendInBook = 0; numberOfFriendInBook < numOfFriendsAndLastIDAndUserID[0]; numberOfFriendInBook++)
     {
         if(friendsList[numberOfFriendInBook].id == numberIDToEdit)
         {
             chooseDataToEdit(friendsList, numberOfFriendInBook);
-            changeDataInBookFile(friendsList, numberofFriends, friendsBook);
+            editOneDataInBookFile(friendsList, numOfFriendsAndLastIDAndUserID, friendsBook, numberIDToEdit);
 
             system("cls");
             cout << "Everything went good.";
@@ -303,82 +503,28 @@ void editFriend(vector<Friend> &friendsList, int numberofFriends, fstream &frien
     Sleep(3000);
 }
 
-int writeFriendsData(vector<Friend> &friendsList, int numberofFriends, fstream &friendsBook)
-{
-    int numberOfFriendsData = 0;
-    string lineFromTextFile;
-    int numberOfLineFromTextFile = 1;
-    string tempPartOfDatas;
-
-    while(getline(friendsBook, lineFromTextFile))
-    {
-        int charNumberOfSeparator = 0;
-
-        charNumberOfSeparator = lineFromTextFile.find("|");
-        tempPartOfDatas.assign(lineFromTextFile, 0, charNumberOfSeparator);
-        friendsList[numberOfFriendsData].id = stoi(tempPartOfDatas);
-        numberofFriends++;
-
-        lineFromTextFile.assign(lineFromTextFile, charNumberOfSeparator+1, lineFromTextFile.size()-1);
-        charNumberOfSeparator = lineFromTextFile.find("|");
-        tempPartOfDatas.assign(lineFromTextFile, 0, charNumberOfSeparator);
-        friendsList[numberOfFriendsData].name = tempPartOfDatas;
-
-        lineFromTextFile.assign(lineFromTextFile, charNumberOfSeparator+1, lineFromTextFile.size()-1);
-        charNumberOfSeparator = lineFromTextFile.find("|");
-        tempPartOfDatas.assign(lineFromTextFile, 0, charNumberOfSeparator);
-        friendsList[numberOfFriendsData].lastName = tempPartOfDatas;
-
-        lineFromTextFile.assign(lineFromTextFile, charNumberOfSeparator+1, lineFromTextFile.size()-1);
-        charNumberOfSeparator = lineFromTextFile.find("|");
-        tempPartOfDatas.assign(lineFromTextFile, 0, charNumberOfSeparator);
-        friendsList[numberOfFriendsData].phoneNum = tempPartOfDatas;
-
-        lineFromTextFile.assign(lineFromTextFile, charNumberOfSeparator+1, lineFromTextFile.size()-1);
-        charNumberOfSeparator = lineFromTextFile.find("|");
-        tempPartOfDatas.assign(lineFromTextFile, 0, charNumberOfSeparator);
-        friendsList[numberOfFriendsData].email = tempPartOfDatas;
-
-        lineFromTextFile.assign(lineFromTextFile, charNumberOfSeparator+1, lineFromTextFile.size()-1);
-        charNumberOfSeparator = lineFromTextFile.find("|");
-        tempPartOfDatas.assign(lineFromTextFile, 0, charNumberOfSeparator);
-        friendsList[numberOfFriendsData].adress = tempPartOfDatas;
-
-        numberOfFriendsData++;
-        numberOfLineFromTextFile++;
-    }
-    return numberofFriends;
-}
-
-void showMainMenu(void)
-{
-    system("cls");
-    cout << "1. Insert new friend."<<endl;
-    cout << "2. Search a friend."<<endl;
-    cout << "3. Show all friends."<<endl;
-    cout << "4. Delete a friend."<<endl;
-    cout << "5. Edit a friend."<<endl;
-    cout << "9. Exit program."<<endl;
-    cout << "Choose an option: "<<endl;
-}
-
-int main()
+void operateOnFriendsData(vector<userData> &userList, fstream &bookOfUsers, int userID)
 {
     int numberTochooseFromMenu = 0;
     int numberofFriends = 0;
+    int lastFriendID = 0;
+    int numOfFriendsAndLastIDAndUserID[3];
     vector<Friend> friendsList(100);
 
     fstream friendsBook;
-    friendsBook.open("ksiazka4.txt",ios::out |ios::app |ios::in);
+    friendsBook.open("Friends.txt",ios::out |ios::app |ios::in);
     if(!friendsBook.good())
     {
         cout << "The file is not exist or something went wrong during opening file";
         exit(0);
     }
 
-    numberofFriends = writeFriendsData(friendsList, numberofFriends, friendsBook);
+    numberofFriends = writeFriendsData(friendsList, userID, friendsBook, lastFriendID);
+    numOfFriendsAndLastIDAndUserID[0] = numberofFriends;
+    numOfFriendsAndLastIDAndUserID[1] = lastFriendID;
+    numOfFriendsAndLastIDAndUserID[2] = userID;
     friendsBook.close();
-    friendsBook.open("ksiazka4.txt",ios::out |ios::app |ios::in);
+    friendsBook.open("Friends.txt",ios::out |ios::app |ios::in);
 
     showMainMenu();
     while(cin >> numberTochooseFromMenu)
@@ -386,26 +532,29 @@ int main()
         switch(numberTochooseFromMenu)
         {
         case 1:
-            numberofFriends = addNewFriend(friendsList, numberofFriends, friendsBook);
+            addNewFriend(friendsList, numOfFriendsAndLastIDAndUserID, friendsBook);
             break;
         case 2:
-            searchFriends(friendsList, numberofFriends);
+            searchFriends(friendsList, numOfFriendsAndLastIDAndUserID[0]);
             break;
         case 3:
-            showFriends(friendsList, numberofFriends);
+            showFriends(friendsList, numOfFriendsAndLastIDAndUserID[0]);
             break;
         case 4:
-            numberofFriends = deleteFriend(friendsList, numberofFriends, friendsBook);
+            deleteFriend(friendsList, numOfFriendsAndLastIDAndUserID, friendsBook);
             break;
         case 5:
-            editFriend(friendsList, numberofFriends, friendsBook);
+            editFriend(friendsList, numOfFriendsAndLastIDAndUserID, friendsBook);
             break;
-        case 9:
-            system("cls");
-            cout << "Goodbye !!!";
-            Sleep(2000);
+        case 6:
+            changePassword(userList, bookOfUsers, userID);
+            break;
+        case 7:
             friendsBook.close();
-            return 0;
+            system("cls");
+            cout << "You have been logged out.";
+            Sleep(2000);
+            return;
         default:
             cout << "You insert wrong data. Please do it again."<<endl;
             Sleep(2000);
@@ -414,5 +563,149 @@ int main()
     }
 
     friendsBook.close();
+    return;
+}
+
+void logInUser(vector<userData> &userList, fstream &bookOfUsers)
+{
+    string login, password;
+
+    system("cls");
+    insertUserData(login, password);
+    for(vector<userData>::iterator i = userList.begin(); i < userList.end(); i++)
+    {
+        if(login == (i -> userLogin) && password == (i -> userPassword))
+        {
+            operateOnFriendsData(userList, bookOfUsers, i->userID);
+            return;
+        }
+    }
+
+    system("cls");
+    cout << "Invalid login or password." << endl;
+    Sleep(2000);
+    return;
+}
+
+int registerUser(vector <userData> &userList ,fstream &bookOfUsers, int numberOfUsers)
+{
+    string login, password;
+    string sign;
+    userData lastUserInList;
+
+    system("cls");
+    insertUserData(login, password);
+
+    for(vector<userData>::iterator i = userList.begin(); i < userList.end(); i++)
+    {
+        if(login == (i -> userLogin))
+        {
+            cout << "This user already exist." << endl;
+            Sleep(2000);
+            return numberOfUsers;
+        }
+    }
+
+    bookOfUsers.open("Users.txt",ios::out | ios::app | ios::in);
+    if(!bookOfUsers.good())
+    {
+        cout << "Something went wrong during opening file!!!";
+        exit(0);
+    }
+
+    if(userList.size() == 0)
+    {
+        lastUserInList.userID = 1;
+    }
+
+    else{
+        lastUserInList = userList.back();
+        lastUserInList.userID++;
+    }
+
+    lastUserInList.userLogin = login;
+    lastUserInList.userPassword = password;
+    userList.push_back(lastUserInList);
+
+    bookOfUsers<<lastUserInList.userID<<"|"<<lastUserInList.userLogin<<"|"<<lastUserInList.userPassword<<"|"<<endl;
+
+    bookOfUsers.close();
+    system("cls");
+    cout << "You have been registered.";
+    Sleep(2000);
+    return ++numberOfUsers;
+}
+
+int loadUserData(vector <userData> &userList ,fstream &bookOfUsers)
+{
+    int numberOfUsers = 0;
+    string lineOfText;
+    string tempPartOfDatas;
+    userData tempUser;
+
+    while(getline(bookOfUsers, lineOfText))
+    {
+
+        int positionOfSeparator = 0;
+
+        positionOfSeparator = lineOfText.find("|");
+        tempPartOfDatas.assign(lineOfText, 0, positionOfSeparator);
+        tempUser.userID = stoi(tempPartOfDatas);
+        numberOfUsers++;
+
+        lineOfText.assign(lineOfText, positionOfSeparator+1, lineOfText.size()-1);
+        positionOfSeparator = lineOfText.find("|");
+        tempPartOfDatas.assign(lineOfText, 0, positionOfSeparator);
+        tempUser.userLogin = tempPartOfDatas;
+
+        lineOfText.assign(lineOfText, positionOfSeparator+1, lineOfText.size()-1);
+        positionOfSeparator = lineOfText.find("|");
+        tempPartOfDatas.assign(lineOfText, 0, positionOfSeparator);
+        tempUser.userPassword = tempPartOfDatas;
+
+        userList.push_back(tempUser);
+    }
+    return numberOfUsers;
+}
+
+int main()
+{
+
+    int choiceOfLogging;
+    int numberOfUsers;
+    vector<userData> userList;
+
+    fstream bookOfUsers;
+    bookOfUsers.open("Users.txt",ios::out |ios::app |ios::in);
+    if(!bookOfUsers.good())
+    {
+        cout << "Something went wrong during opening file";
+        exit(0);
+    }
+
+    numberOfUsers = loadUserData(userList, bookOfUsers);
+    bookOfUsers.close();
+
+    while((choiceOfLogging = chooseLoggingMenu()))
+    {
+        switch(choiceOfLogging)
+        {
+        case 1:
+            numberOfUsers = registerUser(userList, bookOfUsers, numberOfUsers);
+            break;
+        case 2:
+            logInUser(userList, bookOfUsers);
+            break;
+        case 3:
+            system("cls");
+            cout << "Goodbye !!!";
+            Sleep(2000);
+            return 0;
+        default:
+            cout << "You insert wrong data. Please do it again."<<endl;
+            Sleep(2000);
+        }
+    }
+
     return 0;
 }
